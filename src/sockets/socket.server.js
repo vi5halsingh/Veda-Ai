@@ -2,7 +2,8 @@ const { Server } = require("socket.io");
 const cookie = require("cookie");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/user.model");
-const aiservice = require('../services/ai.service')
+const aiservice = require("../services/ai.service");
+const messageModel = require("../models/message.model");
 async function initSocketServer(httpServer) {
   const io = new Server(httpServer, {});
   io.use(async (socket, next) => {
@@ -24,14 +25,34 @@ async function initSocketServer(httpServer) {
   });
 
   io.on("connection", (socket) => {
-    socket.on('ai-massege',async (messagePayload)=>{
-        const response = await aiservice.generateResponse(messagePayload.content)
+    socket.on("ai-message", async (messagePayload) => {
+      // console.log("your msg: ", messagePayload);
+      await messageModel.create({
+        user: socket.user._id,
+        chat: messagePayload.chat,
+        content: messagePayload.content,
+        role: "user",
+      });
+      const chatHistory = (await messageModel.find({chat:messagePayload.chat}).sort({createdAt: -1}).limit(20).lean()).reverse()
+      const response = await aiservice.generateResponse(chatHistory.map((item)=>{
+       return {
+          role:item.role,
+          parts:[{text:item.content}]
+        }
+      }));
 
-        socket.emit('ai-response',{
-          content:response,
-          chat:messagePayload.chat
-        })
-    })
+      await messageModel.create({
+        user: socket.user._id,
+        chat: messagePayload.chat,
+        content: response,
+        role: "model",
+      });
+      // console.log(chatHistory);
+      socket.emit("ai-response", {
+        content: response,
+        chat: messagePayload.chat,
+      });
+    });
   });
 }
 

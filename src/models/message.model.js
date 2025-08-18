@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const chatSchema = new mongoose.Schema(
+const messageSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -8,19 +8,19 @@ const chatSchema = new mongoose.Schema(
     chat: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "chats",
-
     },
     content: {
       type: String,
       required: true,
     },
-    role:{
-        type:String,
-        enum:{["user"]}
-    }
+    role: {
+      type: String,
+      enum: ["user", "model"],
+      default: "user",
+    },
   },
   { timestamps: true }
 );
 
-const chatModel = mongoose.model("chats", chatSchema);
-module.exports = chatModel;
+const messageModel = mongoose.model("messages", messageSchema);
+module.exports = messageModel;
