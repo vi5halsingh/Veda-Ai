@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import {Route , Routes} from 'react-router-dom'
-import ChatScreen from '../components/chatScreen.jsx'
-import Auth from '../components/Auth.jsx.jsx'
+import ChatScreen from '../pages/Chat'
+import AuthPage from '../pages/AuthPage'
+
 const PageRoutes = () => {
   const [user, setUser] = useState(false)
   async function AuthCheck(){
@@ -14,7 +15,8 @@ const PageRoutes = () => {
   return (
     <div>
       <Routes>
-        
+        <Route path='/' element={<ChatScreen/>}/>
+        <Route path='/auth-user' element={<AuthPage/>}/>
       </Routes>
     </div>
   )
