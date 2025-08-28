@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import api from "../config/Api";
+import { toast } from "react-toastify";
 
 export default function Login(props) {
   const navigate = useNavigate();
@@ -14,10 +15,51 @@ export default function Login(props) {
     try {
       if (!data) return;
       const response = await api.post("/auth/login", data);
-      if (response.statusText != 'ok') return;
-      navigate("/");
+
+      if (response.status === 200) {
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        navigate("/");
+      }
     } catch (error) {
-      console.log("Something went wrong", error);
+      if (error.status === 404) {
+        toast.error("User not found", {
+          position: "bottom-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          closeOnClick: true,
+        });
+        return;
+      }
+      if (error.status === 401) {
+        toast.error("Invalid email or password", {
+          position: "bottom-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          closeOnClick: true,
+        });
+        return;
+      }
+      toast.error("Something went wrong", {
+        position: "bottom-right",
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        closeOnClick: true,
+      });
     }
   };
   const handleSetType = (e) => {
@@ -39,6 +81,7 @@ export default function Login(props) {
               type="email"
               placeholder="Enter your email"
               className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none"
+              required
               name="email"
               value={data?.email}
               onChange={(e) => {
@@ -56,6 +99,7 @@ export default function Login(props) {
               type="password"
               placeholder="Enter your password"
               className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none"
+              required
               name="email"
               value={data?.password}
               onChange={(e) => {

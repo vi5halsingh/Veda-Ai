@@ -1,25 +1,69 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import api from "../config/Api";
+import { toast } from "react-toastify";
 
-export default function ChatScreen() {
-  const [messages, setMessages] = useState([
-    { sender: "ai", text: "Hello 👋, I’m your AI assistant. How can I help you today?" },
-  ]);
+export default function ChatScreen({ chat, socket }) {
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+
+  useEffect(() => {
+    loadMessage();
+  }, [chat?.id]);
+
+  const loadMessage = async () => {
+    if (!chat) {
+      toast.info("Select any chat or create new !", {
+        closeOnClick: true,
+        autoClose: 1000,
+        position: "bottom-right",
+      });
+      return;
+    }
+    try {
+      const allMessages = await api.get(`/chat/${chat.id}`);
+      setMessages(allMessages.data.messages);
+    } catch (error) {
+      toast.error("Could not load conversation", {
+        position: "bottom-right",
+        autoClose: 1000,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  };
+
+  // ✅ Setup socket listener ONCE
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAiResponse = (messagePayload) => {
+      setMessages((prev) => [
+        ...prev,
+        { role: "model", content: messagePayload.content },
+      ]);
+    };
+
+    socket.on("ai-response", handleAiResponse);
+
+    return () => {
+      socket.off("ai-response", handleAiResponse);
+    };
+  }, [socket]);
 
   const handleSend = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const newMessages = [...messages, { sender: "user", text: input }];
-    setMessages(newMessages);
-    setInput("");
+    // ✅ append user message correctly
+    setMessages((prev) => [...prev, { role: "user", content: input }]);
 
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { sender: "ai", text: "This is a sample AI response to your query." },
-      ]);
-    }, 800);
+    socket.emit("ai-message", {
+      chat: chat.id,
+      content: input,
+    });
+
+    setInput("");
   };
 
   return (
@@ -34,40 +78,44 @@ export default function ChatScreen() {
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+            className={`flex ${
+              msg.role === "user" ? "justify-end" : "justify-start"
+            }`}
           >
             <div
-              className={`max-w-md px-4 py-2 rounded-lg shadow-sm ${
-                msg.sender === "user"
+              className={`max-w-[70%] px-4 py-2 rounded-lg shadow-sm ${
+                msg.role === "user"
                   ? "bg-black text-white rounded-br-none"
                   : "bg-gray-200 text-gray-800 rounded-bl-none"
               }`}
             >
-              {msg.text}
+              {msg.content}
             </div>
           </div>
         ))}
       </div>
 
       {/* Input bar */}
-      <form
-        onSubmit={handleSend}
-        className="border-t border-gray-300 p-4 flex items-center gap-3 bg-white"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Send a message..."
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none"
-        />
-        <button
-          type="submit"
-          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition"
+      {chat ? (
+        <form
+          onSubmit={handleSend}
+          className="border-t border-gray-300 p-4 flex items-center gap-3 bg-white"
         >
-          Send
-        </button>
-      </form>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Send a message..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition"
+          >
+            Send
+          </button>
+        </form>
+      ) : null}
     </div>
   );
 }

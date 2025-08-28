@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import api from "../config/Api";
+import { toast } from "react-toastify";
 
 export default function Signup(props) {
   const [data, setData] = useState({
@@ -14,9 +15,50 @@ export default function Signup(props) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     // console.log(data);
-    const response = await api.post("/auth/register", data);
-    console.log(response);
-    navigate("/");
+    try {
+      const response = await api.post("/auth/register", data);
+      if (response.status === 200) {
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        toast.success("Registered successfully !", {
+          position: "bottom-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          closeOnClick: true,
+        });
+        navigate("/");
+      }
+    } catch (error) {
+      if (error.status === 409) {
+        toast.error("Already have an account ! try another mail", {
+          position: "bottom-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          closeOnClick: true,
+        });
+        return;
+      }
+      toast.error("Something went wrong", {
+        position: "bottom-right",
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        closeOnClick: true,
+      });
+    }
   };
   const handleSetType = (e) => {
     e.preventDefault();

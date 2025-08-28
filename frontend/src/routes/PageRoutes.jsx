@@ -7,7 +7,14 @@ const PageRoutes = () => {
   return (
     <div>
       <Routes>
-        <Route path="/" element={<Chat />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Chat />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="/auth-user" element={<AuthPage />} />
       </Routes>

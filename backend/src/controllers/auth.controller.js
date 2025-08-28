@@ -11,7 +11,7 @@ async function userRegister(req, res) {
   const existUser = await userModel.findOne({ email });
 
   if (existUser) {
-    return res.status(400).json({ msg: "user already exists" });
+    return res.status(409).json({ msg: "user already exists" });
   }
   const hashPW = await bcrypt.hash(password, 11);
   const user = await userModel.create({
@@ -24,7 +24,7 @@ async function userRegister(req, res) {
   });
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
   res.cookie("token", token, { httpOnly: true });
-  console.log(token);
+  // console.log(token);
 
   return res.status(200).json({
     msg: "user registered successfully",
@@ -37,25 +37,22 @@ async function userRegister(req, res) {
 }
 
 async function loginUser(req, res) {
-  const {
-    email,
-    password,
-  } = req.body;
+  const { email, password } = req.body;
 
   const user = await userModel.findOne({ email });
 
   if (!user) {
-   return res.status(400).json({ msg: "not registered" });
+    return res.status(404).json({ msg: "not registered" });
   }
   const isPasswordValid = await bcrypt.compare(password, user.password);
 
   if (!isPasswordValid) {
-    return res.status(400).json({ msg: "Invalid email or password" });
+    return res.status(401).json({ msg: "Invalid email or password" });
   }
 
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
   res.cookie("token", token, { httpOnly: true });
-  console.log(token);
+  // console.log(token);
 
   return res.status(200).json({
     msg: "user logged in successfully",
@@ -67,4 +64,4 @@ async function loginUser(req, res) {
   });
 }
 
-module.exports = { userRegister , loginUser };
+module.exports = { userRegister, loginUser };

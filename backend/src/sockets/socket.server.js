@@ -47,7 +47,7 @@ async function initSocketServer(httpServer) {
           user: socket.user._id,
           chat: messagePayload.chat,
           content: messagePayload.content,
-          role: "user",
+          role:"user",
         }),
         aiservice.generateVector(messagePayload.content),
       ]);
@@ -95,7 +95,7 @@ async function initSocketServer(httpServer) {
         };
       });
       const response = await aiservice.generateResponse([...ltm, ...stm]);
-
+console.log('response',response)
       // const responseVector = await aiservice.generateVector(response);
 
       // const responseMessage = await messageModel.create({
