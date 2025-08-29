@@ -19,7 +19,7 @@ async function initSocketServer(httpServer) {
       next(new Error("Unauthorize error : No token provided"));
     }
     try {
-      const decode = await jwt.decode(cookies.token, process.env.JWT_SECRET);
+      const decode = jwt.decode(cookies.token, process.env.JWT_SECRET);
 
       const user = await userModel.findById(decode.id);
       socket.user = user;
@@ -29,19 +29,19 @@ async function initSocketServer(httpServer) {
       next(new Error("invalid token provided"));
     }
   });
+let maxTokenLimit = 1;
 
+ console.log("maxTokenLimit", maxTokenLimit)
   io.on("connection", (socket) => {
+    // console.log(socket)
     socket.on("ai-message", async (messagePayload) => {
-      // console.log("your msg: ", messagePayload);
-
-      // const message = await messageModel.create({
-      //   user: socket.user._id,
-      //   chat: messagePayload.chat,
-      //   content: messagePayload.content,
-      //   role: "user",
-      // });
-
-      // const vector = await aiservice.generateVector(messagePayload.content);
+        if(maxTokenLimit<=0){
+    socket.emit("ai-response", {
+      content: "Sorry you have reached the token limit ",
+      chat: messagePayload.chat,
+    });
+    return ;
+  }
       const [message, vector] = await Promise.all([
         messageModel.create({
           user: socket.user._id,
@@ -88,6 +88,7 @@ async function initSocketServer(httpServer) {
           .limit(20)
           .lean()
       ).reverse();
+
       const stm = chatHistory.map((item) => {
         return {
           role: item.role,
@@ -95,15 +96,6 @@ async function initSocketServer(httpServer) {
         };
       });
       const response = await aiservice.generateResponse([...ltm, ...stm]);
-console.log('response',response)
-      // const responseVector = await aiservice.generateVector(response);
-
-      // const responseMessage = await messageModel.create({
-      //   user: socket.user._id,
-      //   chat: messagePayload.chat,
-      //   content: response,
-      //   role: "model",
-      // });
       const [responseVector, responseMessage] = await Promise.all([
         aiservice.generateVector(response),
 
@@ -128,6 +120,8 @@ console.log('response',response)
         content: response,
         chat: messagePayload.chat,
       });
+  maxTokenLimit--;
+  console.log("maxTokenLimit", maxTokenLimit)
     });
   });
 }

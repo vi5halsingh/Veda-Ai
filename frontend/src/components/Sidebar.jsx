@@ -3,6 +3,8 @@ import { FiPlus, FiMessageSquare, FiMenu, FiChevronLeft, FiSettings } from "reac
 import api from "../config/Api";
 import { toast } from "react-toastify";
 import logo from '/logo.svg'
+// Add this import
+import { FiMoreVertical } from 'react-icons/fi';
 
 export default function Sidebar({ onSelectChat, selectedChatId }) {
   const [chats, setChats] = useState([]);
@@ -10,6 +12,9 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
   const [error, setError] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [editingChatId, setEditingChatId] = useState(null);
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  const [newChatTitle, setNewChatTitle] = useState('');
 
   useEffect(() => {
     fetchChats();
@@ -66,6 +71,49 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
     }
   };
 
+  const renameChat = async (chatId) => {
+    if (!newChatTitle.trim()) {
+      toast.error('Chat title cannot be empty',{
+        position: "bottom-right",
+        autoClose: 1000,
+        closeOnClick: true,
+      });
+      return;
+    }
+
+    try {
+      const response = await api.patch(`/chat/${chatId}`, {
+        title: newChatTitle
+      });
+  
+      setChats(prev => prev.map(chat => 
+        chat.id === chatId ? response.data : chat
+      ));
+      setEditingChatId(null);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to rename chat',{
+        position: "bottom-right",
+        autoClose: 1000,
+        closeOnClick: true,
+      });
+    }
+  };
+  
+  const deleteChat = async (chatId) => {
+    try {
+      await api.delete(`/chat/${chatId}`);
+      
+      setChats(prev => prev.filter(chat => chat.id !== chatId));
+      if (selectedChatId === chatId) onSelectChat(null);
+    } catch (error) {
+      toast.error('Failed to delete chat',{
+        position: "bottom-right",
+        autoClose: 1000,
+        closeOnClick: true,
+      });
+    }
+  };
+  
   // Format date for last activity
   const formatLastActivity = (date) => {
     return new Date(date).toLocaleDateString("en-US", {
@@ -128,18 +176,67 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
 
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto space-y-1 p-2">
-        {chats.map((chat) => (
-          <button
+        {chats.map((chat,i) => (
+          <div
             key={chat.id}
-            onClick={() => onSelectChat?.(chat)}
-            className={`w-full text-left p-3 rounded-lg transition-colors flex items-center gap-3 hover:bg-gray-200 ${
-              selectedChatId === chat.id ? "bg-gray-200 font-semibold" : ""
+            className={`w-full text-left p-3 rounded-lg transition-colors cursor-context-menu flex items-center gap-3 hover:bg-gray-200 ${
+              selectedChatId === chat.id ? 'bg-gray-200 font-semibold' : ''
             }`}
+             onClick={() => onSelectChat?.(chat)}
           >
             <FiMessageSquare className="flex-shrink-0" />
             {!isMinimized && (
               <div className="flex-1 min-w-0">
-                <p className="truncate">{chat.title}</p>
+                {editingChatId === chat.id ? (
+                  <input
+                    autoFocus
+                    value={newChatTitle}
+                    onChange={(e) => setNewChatTitle(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && renameChat(chat?.id)}
+                    className="w-full p-1 border rounded"
+                  />
+                ) : (
+                  <div className="flex justify-between items-center w-full">
+                    <p className="truncate">{chat.title}</p>
+                    <div className="relative ml-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpenId(menuOpenId === chat.id ? null : chat.id);
+                        }}
+                        className="p-1 hover:bg-gray-300 rounded"
+                      >
+                        <FiMoreVertical />
+                      </button>
+                      
+                      {menuOpenId === chat.id && (
+                        <div className="absolute right-0 mt-1 bg-gray-100 rounded-md shadow-lg z-10">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingChatId(chat.id);
+                              setNewChatTitle(chat.title);
+                              setMenuOpenId(null);
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 cursor-pointer"
+                          >
+                            rename
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteChat(chat.id);
+                              setMenuOpenId(null);
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {chat.lastactivity && (
                   <p className="text-xs text-gray-500 truncate">
                     {formatLastActivity(chat.lastactivity)}
@@ -147,7 +244,7 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
                 )}
               </div>
             )}
-          </button>
+          </div>
         ))}
       </div>
 

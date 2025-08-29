@@ -11,4 +11,10 @@ router.post("/", authMiddleware.authUser, chatController.createChat);
 
 router.get("/:id", authMiddleware.authUser, chatController.getChatForId);
 
+// Update chat title
+router.patch("/:id", authMiddleware.authUser, chatController.updateChat);
+
+// Delete chat
+router.delete("/:id", authMiddleware.authUser, chatController.deleteChat);
+
 module.exports = router;

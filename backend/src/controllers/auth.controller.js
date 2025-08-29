@@ -64,4 +64,16 @@ async function loginUser(req, res) {
   });
 }
 
-module.exports = { userRegister, loginUser };
+// Add logout function
+export async function logoutUser(req, res) {
+  try {
+    // Clear token cookie
+    res.clearCookie("token");
+    return res.status(200).json({ msg: "Logged out successfully" });
+  } catch (error) {
+    return res.status(500).json({ msg: "Logout failed" });
+  }
+}
+
+// Update exports
+module.exports = { userRegister, loginUser, logoutUser };

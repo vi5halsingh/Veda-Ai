@@ -49,4 +49,37 @@ async function getChatForId(req, res) {
   })
 }
 
-module.exports = { createChat, getChats ,getChatForId};
+const updateChat = async (req, res) => {
+  try {
+    if (!req.body.title) return res.status(400).json({ error: 'Title is required' });
+    
+    const chat = await chatModel.findByIdAndUpdate(
+      req.params.id,
+      { title: req.body.title },
+      { new: true, runValidators: true }
+    );
+    
+    if (!chat) return res.status(404).json({ error: 'Chat not found' });
+    res.json(chat);
+  } catch (error) {
+    console.error('Update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const deleteChat = async (req, res) => {
+  try {
+    const chat = await chatModel.findByIdAndDelete(req.params.id);
+   
+    if (!chat) return res.status(404).json({ error: 'Chat not found' });
+    
+    // Delete associated messages
+    await messageModel.deleteMany({ chat: req.params.id });
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete chat' });
+  }
+};
+
+module.exports = { createChat, getChats ,getChatForId, updateChat, deleteChat};

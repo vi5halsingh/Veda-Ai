@@ -1,4 +1,5 @@
 {
+   
   "dependencies": {
     "@google/genai": "^1.14.0",
     "@pinecone-database/pinecone": "^6.1.2",
