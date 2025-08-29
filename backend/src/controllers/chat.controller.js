@@ -52,20 +52,28 @@ async function getChatForId(req, res) {
 const updateChat = async (req, res) => {
   try {
     if (!req.body.title) return res.status(400).json({ error: 'Title is required' });
-    
+
     const chat = await chatModel.findByIdAndUpdate(
       req.params.id,
       { title: req.body.title },
-      { new: true, runValidators: true }
+      { new: true } // returns updated chat
     );
-    
+
     if (!chat) return res.status(404).json({ error: 'Chat not found' });
-    res.json(chat);
+
+    res.json({
+      chat: {
+        id: chat._id,
+        title: chat.title,
+        lastactivity: chat.lastactivity,
+      },
+    });
   } catch (error) {
     console.error('Update error:', error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 const deleteChat = async (req, res) => {
   try {

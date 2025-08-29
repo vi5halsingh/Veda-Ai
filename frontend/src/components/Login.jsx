@@ -64,7 +64,7 @@ export default function Login(props) {
   const handleSetType = (e) => {
     e.preventDefault();
     props.setType((p) => "signup");
-    console.log(props.type);
+    
   };
   return (
     <div className="flex w-full md:w-1/2 items-center justify-center p-8">

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { FiPlus, FiMessageSquare, FiMenu, FiChevronLeft, FiSettings } from "react-icons/fi";
+import { useNavigate } from 'react-router-dom';
+import {FiMoreVertical, FiPlus, FiMessageSquare, FiMenu, FiChevronLeft, FiSettings , FiLogOut } from "react-icons/fi";
 import api from "../config/Api";
 import { toast } from "react-toastify";
 import logo from '/logo.svg'
-// Add this import
-import { FiMoreVertical } from 'react-icons/fi';
 
 export default function Sidebar({ onSelectChat, selectedChatId }) {
+
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,14 +15,17 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
   const [editingChatId, setEditingChatId] = useState(null);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [newChatTitle, setNewChatTitle] = useState('');
-
+  const [showSettingsCard, setShowSettingsCard] = useState(false);
+ const Navigate = useNavigate();
   useEffect(() => {
     fetchChats();
-  }, [chats]);
+  }, []);
 
+const user = JSON.parse(localStorage.getItem('user'));
   const fetchChats = async () => {
     try {
       const response = await api.get("/chat");
+     
       setChats(response.data.chats);
       setError(null);
     } catch (error) {
@@ -65,7 +68,7 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
         autoClose: 2000,
         closeOnClick: true,
       });
-      console.log(error);
+    
     } finally {
       setIsCreating(false);
     }
@@ -85,9 +88,10 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
       const response = await api.patch(`/chat/${chatId}`, {
         title: newChatTitle
       });
+   
   
       setChats(prev => prev.map(chat => 
-        chat.id === chatId ? response.data : chat
+        chat.id === chatId ? response.data.chat   : chat
       ));
       setEditingChatId(null);
     } catch (error) {
@@ -123,6 +127,22 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
       minute: "2-digit",
     });
   };
+  const handleLogout = async () => {
+  try {
+    await api.post('/auth/logout');
+    // Clear client-side token storage if any
+    localStorage.removeItem('user');
+    Navigate('/auth-user')
+    
+    // Handle redirect or state update
+  } catch (error) {
+    toast.error('Logout failed',{
+      position: "bottom-right",
+      autoClose: 1000,
+      closeOnClick: true,
+    });
+  }
+};
 
   // Sidebar skeleton when loading
   if (loading) {
@@ -178,7 +198,8 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
       <div className="flex-1 overflow-y-auto space-y-1 p-2">
         {chats.map((chat,i) => (
           <div
-            key={chat.id}
+           
+            key={i}
             className={`w-full text-left p-3 rounded-lg transition-colors cursor-context-menu flex items-center gap-3 hover:bg-gray-200 ${
               selectedChatId === chat.id ? 'bg-gray-200 font-semibold' : ''
             }`}
@@ -192,7 +213,11 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
                     autoFocus
                     value={newChatTitle}
                     onChange={(e) => setNewChatTitle(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && renameChat(chat?.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        renameChat(chat.id);
+                      }
+                    }}
                     className="w-full p-1 border rounded"
                   />
                 ) : (
@@ -218,7 +243,7 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
                               setNewChatTitle(chat.title);
                               setMenuOpenId(null);
                             }}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 cursor-pointer"
+                            className="w-full px-4 py-2 text-left hover:bg-gray-200 cursor-pointer"
                           >
                             rename
                           </button>
@@ -228,7 +253,7 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
                               deleteChat(chat.id);
                               setMenuOpenId(null);
                             }}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 cursor-pointer"
+                            className="w-full px-4 py-2 text-left hover:bg-gray-200 cursor-pointer"
                           >
                             Delete
                           </button>
@@ -249,12 +274,31 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
       </div>
 
       {/* Settings Button at bottom */}
-      <div className="p-3 border-t border-gray-200">
-        <button className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-gray-200 transition">
-          <FiSettings />
-          {!isMinimized && <span>Settings</span>}
-        </button>
-      </div>
+     <div className="p-3 border-t border-gray-200">
+  <button 
+    onClick={() => setShowSettingsCard(!showSettingsCard)}
+    className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-gray-200 transition"
+  >
+    <FiSettings />
+    {!isMinimized && (
+      <span>
+        {user.fullname.firstname || 'User'}
+      </span>
+    )}
+  </button>
+  
+  {showSettingsCard && !isMinimized && (
+    <div className="mt-2 p-3 bg-white rounded-lg shadow-md ">
+      <button
+        onClick={handleLogout}
+        className="w-full flex items-center gap-2 p-2 text-red-600 hover:bg-red-50 rounded transition"
+      >
+        <FiLogOut />
+        <span>Logout</span>
+      </button>
+    </div>
+  )}
+</div>
     </div>
   );
 }

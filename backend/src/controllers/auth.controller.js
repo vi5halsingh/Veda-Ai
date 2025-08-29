@@ -65,7 +65,7 @@ async function loginUser(req, res) {
 }
 
 // Add logout function
-export async function logoutUser(req, res) {
+async function logoutUser(req, res) {
   try {
     // Clear token cookie
     res.clearCookie("token");

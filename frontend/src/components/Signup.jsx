@@ -60,7 +60,7 @@ export default function Signup(props) {
   const handleSetType = (e) => {
     e.preventDefault();
     props.setType((p) => "login");
-    console.log(props.type);
+    
   };
 
   return (

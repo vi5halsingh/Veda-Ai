@@ -20,6 +20,7 @@ export default function ChatScreen({ chat, socket }) {
       return;
     }
     try {
+     
       const allMessages = await api.get(`/chat/${chat.id}`);
       setMessages(allMessages.data.messages);
     } catch (error) {
@@ -30,6 +31,7 @@ export default function ChatScreen({ chat, socket }) {
         pauseOnHover: true,
         draggable: true,
       });
+      return null;
     }
   };
 
@@ -70,7 +72,7 @@ export default function ChatScreen({ chat, socket }) {
     <div className="flex-1 flex flex-col h-screen">
       {/* Small Header */}
       <header className="h-12 border-b border-gray-300 flex items-center px-4 bg-white shadow-sm">
-        <h1 className="text-lg font-semibold text-gray-800">Veda</h1>
+        <h1 className="text-lg font-semibold text-gray-800">Veda-Ai</h1>
       </header>
 
       {/* Chat messages */}

@@ -3,7 +3,7 @@ import AuthPage from "../pages/AuthPage";
 import ProtectedRoute from "../config/ProtectedRoute";
 import Chat from "../pages/Chat";
 
-const PageRoutes = () => {
+const PageRoutes = ({user}) => {  
   return (
     <div>
       <Routes>
