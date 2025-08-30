@@ -5,6 +5,7 @@ const userModel = require("../models/user.model");
 const aiservice = require("../services/ai.service");
 const messageModel = require("../models/message.model");
 const { createMemory, queryMemory } = require("../services/vector.services");
+
 async function initSocketServer(httpServer) {
   const io = new Server(httpServer, {
     cors: {
@@ -12,42 +13,48 @@ async function initSocketServer(httpServer) {
       credentials: true,
     },
   });
+
   io.use(async (socket, next) => {
     const cookies = cookie.parse(socket.handshake.headers?.cookie || "");
 
     if (!cookies.token) {
-      next(new Error("Unauthorize error : No token provided"));
+      return next(new Error("Unauthorized: No token provided"));
     }
     try {
       const decode = jwt.decode(cookies.token, process.env.JWT_SECRET);
-
       const user = await userModel.findById(decode.id);
+      if (!user) {
+        return next(new Error("Unauthorized: User not found"));
+      }
       socket.user = user;
-
       next();
     } catch (error) {
-      next(new Error("invalid token provided"));
+      next(new Error("Invalid token provided"));
     }
   });
-let maxTokenLimit = 1;
 
- console.log("maxTokenLimit", maxTokenLimit)
   io.on("connection", (socket) => {
-    // console.log(socket)
     socket.on("ai-message", async (messagePayload) => {
-        if(maxTokenLimit<=0){
-    socket.emit("ai-response", {
-      content: "Sorry you have reached the token limit ",
-      chat: messagePayload.chat,
-    });
-    return ;
-  }
+      let user = socket.user;
+
+      // Check if the token reset time has passed
+      if (new Date() > user.tokenResetAt) {
+        user.tokenLimit = 30;
+        user.tokenResetAt = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
+        await user.save();
+      }
+
+      if (user.tokenLimit <= 0) {
+        socket.emit("token-limit-exceeded", user.tokenResetAt);
+        return;
+      }
+
       const [message, vector] = await Promise.all([
         messageModel.create({
           user: socket.user._id,
           chat: messagePayload.chat,
           content: messagePayload.content,
-          role:"user",
+          role: "user",
         }),
         aiservice.generateVector(messagePayload.content),
       ]);
@@ -98,7 +105,6 @@ let maxTokenLimit = 1;
       const response = await aiservice.generateResponse([...ltm, ...stm]);
       const [responseVector, responseMessage] = await Promise.all([
         aiservice.generateVector(response),
-
         messageModel.create({
           user: socket.user._id,
           chat: messagePayload.chat,
@@ -115,13 +121,14 @@ let maxTokenLimit = 1;
           text: response,
         },
       });
-      // console.log(chatHistory);
       socket.emit("ai-response", {
         content: response,
         chat: messagePayload.chat,
       });
-  maxTokenLimit--;
-  console.log("maxTokenLimit", maxTokenLimit)
+
+      // Decrement token limit and save the user
+      user.tokenLimit -= 1;
+      await user.save();
     });
   });
 }

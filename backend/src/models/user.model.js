@@ -12,12 +12,20 @@ const userSchema = new mongoose.Schema({
     },
      lastname: {
       type: String,
-     
+
     },
   },
   password: {
     type: String,
     required: true,
+  },
+  tokenLimit: {
+    type: Number,
+    default: 30,
+  },
+  tokenResetAt: {
+    type: Date,
+    default: () => new Date(new Date().getTime() + 24 * 60 * 60 * 1000),
   },
 },
 {timestamps:true});

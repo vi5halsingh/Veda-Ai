@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
-import {FiMoreVertical, FiPlus, FiMessageSquare, FiMenu, FiChevronLeft, FiSettings , FiLogOut } from "react-icons/fi";
+import {
+  FiPlus,
+  FiMessageSquare,
+  FiMenu,
+  FiChevronLeft,
+  FiSettings,
+  FiLogOut,
+  FiMoreHorizontal 
+} from "react-icons/fi";
 import api from "../config/Api";
 import { toast } from "react-toastify";
-import logo from '/logo.svg'
+import logo from '/logo.svg';
 
 export default function Sidebar({ onSelectChat, selectedChatId }) {
 
@@ -16,20 +24,24 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [newChatTitle, setNewChatTitle] = useState('');
   const [showSettingsCard, setShowSettingsCard] = useState(false);
- const Navigate = useNavigate();
+  const Navigate = useNavigate();
+
+  // refs for click-outside
+  const menuRef = useRef(null);
+  const settingsBtnRef = useRef(null);
+  const settingsCardRef = useRef(null);
+
   useEffect(() => {
     fetchChats();
   }, []);
 
-const user = JSON.parse(localStorage.getItem('user'));
+  const user = JSON.parse(localStorage.getItem('user'));
   const fetchChats = async () => {
     try {
       const response = await api.get("/chat");
-     
       setChats(response.data.chats);
       setError(null);
     } catch (error) {
-      // setError("Failed to load chats");
       toast.error("Could not load chats", {
         position: "bottom-right",
         autoClose: 2000,
@@ -43,19 +55,11 @@ const user = JSON.parse(localStorage.getItem('user'));
   const createChat = async () => {
     setIsCreating(true);
     try {
-      const response = await api.post("/chat", {
-        title: "New Chat",
-      });
-
+      const response = await api.post("/chat", { title: "New Chat" });
       if (response.status === 200) {
         const newChat = response.data.chat;
         setChats((prevChats) => [newChat, ...prevChats]);
-
-        // Select the newly created chat
-        if (onSelectChat) {
-          onSelectChat(newChat);
-        }
-
+        if (onSelectChat) onSelectChat(newChat);
         toast.success("new chat created", {
           position: "bottom-right",
           autoClose: 1000,
@@ -68,7 +72,6 @@ const user = JSON.parse(localStorage.getItem('user'));
         autoClose: 2000,
         closeOnClick: true,
       });
-    
     } finally {
       setIsCreating(false);
     }
@@ -83,16 +86,9 @@ const user = JSON.parse(localStorage.getItem('user'));
       });
       return;
     }
-
     try {
-      const response = await api.patch(`/chat/${chatId}`, {
-        title: newChatTitle
-      });
-   
-  
-      setChats(prev => prev.map(chat => 
-        chat.id === chatId ? response.data.chat   : chat
-      ));
+      const response = await api.patch(`/chat/${chatId}`, { title: newChatTitle });
+      setChats(prev => prev.map(chat => chat.id === chatId ? response.data.chat : chat));
       setEditingChatId(null);
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to rename chat',{
@@ -102,11 +98,10 @@ const user = JSON.parse(localStorage.getItem('user'));
       });
     }
   };
-  
+
   const deleteChat = async (chatId) => {
     try {
       await api.delete(`/chat/${chatId}`);
-      
       setChats(prev => prev.filter(chat => chat.id !== chatId));
       if (selectedChatId === chatId) onSelectChat(null);
     } catch (error) {
@@ -117,8 +112,7 @@ const user = JSON.parse(localStorage.getItem('user'));
       });
     }
   };
-  
-  // Format date for last activity
+
   const formatLastActivity = (date) => {
     return new Date(date).toLocaleDateString("en-US", {
       month: "short",
@@ -127,31 +121,57 @@ const user = JSON.parse(localStorage.getItem('user'));
       minute: "2-digit",
     });
   };
-  const handleLogout = async () => {
-  try {
-    await api.post('/auth/logout');
-    // Clear client-side token storage if any
-    localStorage.removeItem('user');
-    Navigate('/auth-user')
-    
-    // Handle redirect or state update
-  } catch (error) {
-    toast.error('Logout failed',{
-      position: "bottom-right",
-      autoClose: 1000,
-      closeOnClick: true,
-    });
-  }
-};
 
-  // Sidebar skeleton when loading
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout');
+      localStorage.removeItem('user');
+      Navigate('/auth-user')
+    } catch (error) {
+      toast.error('Logout failed',{
+        position: "bottom-right",
+        autoClose: 1000,
+        closeOnClick: true,
+      });
+    }
+  };
+
+  // close menus on outside click / Esc
+  useEffect(() => {
+    const onDown = (e) => {
+      // close chat row menu
+      if (menuOpenId && menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpenId(null);
+      }
+      // close settings popover
+      if (showSettingsCard) {
+        const clickOnBtn = settingsBtnRef.current?.contains(e.target);
+        const clickOnCard = settingsCardRef.current?.contains(e.target);
+        if (!clickOnBtn && !clickOnCard) setShowSettingsCard(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setMenuOpenId(null);
+        setEditingChatId(null);
+        setShowSettingsCard(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpenId, showSettingsCard]);
+
   if (loading) {
     return (
-      <div className="h-screen w-64 bg-gray-100 border-r border-gray-200 p-4 flex flex-col">
+      <div className="h-screen w-64 bg-[#202123] border-r border-gray-800 p-4 flex flex-col">
         <div className="animate-pulse space-y-4">
-          <div className="h-10 bg-gray-200 rounded"></div>
-          <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-10 bg-gray-700 rounded"></div>
+          <div className="h-8 bg-gray-700 rounded w-3/4"></div>
+          <div className="h-8 bg-gray-700 rounded w-1/2"></div>
         </div>
       </div>
     );
@@ -159,17 +179,16 @@ const user = JSON.parse(localStorage.getItem('user'));
 
   return (
     <div
-      className={`h-screen bg-gray-100 border-r border-gray-200 flex flex-col transition-all duration-300 ${
-        isMinimized ? "w-16" : "w-64"
+      className={`relative h-screen bg-[#fff] text-black flex flex-col transition-all duration-200 ${
+        isMinimized ? "w-16" : "w-72"
       }`}
     >
-      {/* Header & New Chat Button */}
-      <div className="p-3 flex items-center justify-between border-b border-gray-200">
-        {/* {!isMinimized && <h2 className="text-lg font-semibold text-gray-800">chats</h2>} */}
-         {!isMinimized && <img src={logo} alt="logo" className="w-8 h-8" /> }
+      {/* Header */}
+      <div className="p-2 flex items-center justify-between border-b border-gray-200">
+        {!isMinimized && <img src={logo} alt="logo" className="w-7 h-7" />}
         <button
           onClick={() => setIsMinimized(!isMinimized)}
-          className="p-2 rounded hover:bg-gray-200 transition"
+          className="p-2 rounded hover:bg-gray-200 transition cursor-pointer"
         >
           {isMinimized ? <FiMenu /> : <FiChevronLeft />}
         </button>
@@ -180,7 +199,7 @@ const user = JSON.parse(localStorage.getItem('user'));
         <button
           onClick={createChat}
           disabled={isCreating}
-          className="w-full  hover:bg-gray-200 text-black font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
+          className="w-full bg-[#ffff] hover:bg-gray-200 text-black py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
         >
           <FiPlus className={isCreating ? "animate-spin" : ""} />
           {!isMinimized && "New Chat"}
@@ -189,116 +208,135 @@ const user = JSON.parse(localStorage.getItem('user'));
 
       {/* Error */}
       {error && !isMinimized && (
-        <div className="mx-3 p-2 bg-red-100 border border-red-300 rounded-lg text-red-600 text-sm">
+        <div className="mx-3 p-2 bg-red-900/20 border border-red-500/40 rounded-lg text-red-300 text-sm">
           {error}
         </div>
       )}
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto space-y-1 p-2">
-        {chats.map((chat,i) => (
-          <div
-           
-            key={i}
-            className={`w-full text-left p-3 rounded-lg transition-colors cursor-context-menu flex items-center gap-3 hover:bg-gray-200 ${
-              selectedChatId === chat.id ? 'bg-gray-200 font-semibold' : ''
-            }`}
-             onClick={() => onSelectChat?.(chat)}
-          >
-            <FiMessageSquare className="flex-shrink-0" />
-            {!isMinimized && (
-              <div className="flex-1 min-w-0">
-                {editingChatId === chat.id ? (
-                  <input
-                    autoFocus
-                    value={newChatTitle}
-                    onChange={(e) => setNewChatTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        renameChat(chat.id);
-                      }
-                    }}
-                    className="w-full p-1 border rounded"
-                  />
-                ) : (
-                  <div className="flex justify-between items-center w-full">
-                    <p className="truncate">{chat.title}</p>
-                    <div className="relative ml-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuOpenId(menuOpenId === chat.id ? null : chat.id);
-                        }}
-                        className="p-1 hover:bg-gray-300 rounded"
-                      >
-                        <FiMoreVertical />
-                      </button>
-                      
-                      {menuOpenId === chat.id && (
-                        <div className="absolute right-0 mt-1 bg-gray-100 rounded-md shadow-lg z-10">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingChatId(chat.id);
-                              setNewChatTitle(chat.title);
-                              setMenuOpenId(null);
-                            }}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-200 cursor-pointer"
-                          >
-                            rename
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteChat(chat.id);
-                              setMenuOpenId(null);
-                            }}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-200 cursor-pointer"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
+      <div className="flex-1 overflow-y-auto space-y-1 px-2 pb-16">
+        {chats.map((chat, i) => {
+          const isActive = selectedChatId === chat.id;
+          return (
+            <div
+              key={i}
+              onClick={() => onSelectChat?.(chat)}
+              className={`group relative w-full px-3 py-2 rounded-md flex items-center gap-3 cursor-pointer transition-colors duration-150 ${
+                isActive ? "bg-[#ffff]" : "hover:bg-gray-200"
+              }`}
+            >
+              <FiMessageSquare className="flex-shrink-0" />
+              {!isMinimized && (
+                <div className="flex-1 min-w-0 flex items-center">
+                  {/* title / rename */}
+                  <div className="flex-1 min-w-0">
+                    {editingChatId === chat.id ? (
+                      <input
+                        autoFocus
+                        value={newChatTitle}
+                        onChange={(e) => setNewChatTitle(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && renameChat(chat.id)}
+                        className="w-full px-2 py-1 rounded bg-[#fff] text-black outline-none"
+                      />
+                    ) : (
+                      <>
+                        <p className="truncate">{chat.title}</p>
+                        {chat.lastactivity && (
+                          <p className="text-xs text-gray-400 truncate">
+                            {formatLastActivity(chat.lastactivity)}
+                          </p>
+                        )}
+                      </>
+                    )}
                   </div>
-                )}
-                {chat.lastactivity && (
-                  <p className="text-xs text-gray-500 truncate">
-                    {formatLastActivity(chat.lastactivity)}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+
+                  {/* hover-only actions (three dots) */}
+                  <div
+                    className={`ml-2 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 ${
+                      menuOpenId === chat.id || editingChatId === chat.id ? "opacity-100" : ""
+                    }`}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpenId(menuOpenId === chat.id ? null : chat.id);
+                      }}
+                      className="p-1.5 rounded hover:bg-[#e5e7eb] focus-visible:outline-none"
+                      aria-label="More"
+                      title="More"
+                    >
+                      <FiMoreHorizontal />
+                    </button>
+                  </div>
+
+                  {/* context menu */}
+                  {menuOpenId === chat.id && (
+                    <div
+                      ref={menuRef}
+                      className="absolute right-0 top-10 z-20 rounded-md bg-[#fff] border border-[#e5e7eb] shadow-xl overflow-hidden"
+                      onClick={(e)=> e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => {
+                          setEditingChatId(chat.id);
+                          setNewChatTitle(chat.title);
+                          setMenuOpenId(null);
+                        }}
+                        className="w-full px-2 py-2 text-left hover:bg-[#e5e7eb] cursor-pointer"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        onClick={() => {
+                          deleteChat(chat.id);
+                          setMenuOpenId(null);
+                        }}
+                        className="w-full px-2 py-2 text-left hover:bg-[#e5e7eb] cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Settings Button at bottom */}
-     <div className="p-3 border-t border-gray-200">
-  <button 
-    onClick={() => setShowSettingsCard(!showSettingsCard)}
-    className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-gray-200 transition"
-  >
-    <FiSettings />
-    {!isMinimized && (
-      <span>
-        {user.fullname.firstname || 'User'}
-      </span>
-    )}
-  </button>
-  
-  {showSettingsCard && !isMinimized && (
-    <div className="mt-2 p-3 bg-white rounded-lg shadow-md ">
-      <button
-        onClick={handleLogout}
-        className="w-full flex items-center gap-2 p-2 text-red-600 hover:bg-red-50 rounded transition"
-      >
-        <FiLogOut />
-        <span>Logout</span>
-      </button>
-    </div>
-  )}
-</div>
+      {/* Bottom: Settings/Profile */}
+      <div className="p-3 border-t border-gray-200">
+        <button
+          ref={settingsBtnRef}
+          onClick={() => setShowSettingsCard((s) => !s)}
+          className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[#e5e7eb] transition cursor-pointer"
+        >
+          <FiSettings />
+          {!isMinimized && <span>{user?.fullname?.firstname || 'User'}</span>}
+        </button>
+      </div>
+
+      {/* Settings Popover (like ChatGPT) */}
+      {showSettingsCard && !isMinimized && (
+        <div
+          ref={settingsCardRef}
+          className="absolute bottom-16 left-3 z-30 w-64 rounded-xl border border-gray-200 bg-[#fff] shadow-2xl "
+        >
+          <div className="p-2">
+            <div className="px-3 py-2 text-sm text-black border-b border-gray-200">
+              {user?.fullname?.firstname || 'User'}
+            </div>
+            {/* keep only logout action as per existing functionality */}
+            <button
+              onClick={handleLogout}
+              className="mt-1 w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-[#e5e7eb] text-left text-red-500 cursor-pointer"
+            >
+              <FiLogOut />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
