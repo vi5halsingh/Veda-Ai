@@ -1,6 +1,6 @@
 Veda-Ai: Intelligent Chat Application
 <p align="center">
-<img src="/logo.svg" alt="Veda-Ai Banner"/>
+<img src="./frontend/public/logo.svg" alt="Veda-Ai Banner"/>
 </p>
 
 <p align="center">
