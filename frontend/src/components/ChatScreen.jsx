@@ -92,7 +92,12 @@ export default function ChatScreen({ chat, socket }) {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-        {messages.map((msg, i) => (
+        { messages.length === 0 ? (
+    <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+      No messages in this chat yet.
+    </div>
+  ) : (
+        messages.map((msg, i) => (
           <div
             key={i}
             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -109,13 +114,14 @@ export default function ChatScreen({ chat, socket }) {
               </ReactMarkdown>
             </div>
           </div>
-        ))}
+        ))
+      )}
       </div>
 
       {chat ? (
         <form
           onSubmit={handleSend}
-          className="border border-gray-200 py-3 px-2 flex items-center gap-3 bg-white flex-shrink-0 rounded-full w-full max-w-[80%] mx-auto  "
+          className="border border-gray-300 py-2 px-2 flex items-center gap-3 bg-white flex-shrink-0 rounded-full w-full max-w-[80%] mx-auto my-1 "
         >
           <input
             type="text"

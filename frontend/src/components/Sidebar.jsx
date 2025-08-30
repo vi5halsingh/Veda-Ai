@@ -179,10 +179,11 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
 
   return (
     <div
-      className={`relative h-screen bg-[#fff] text-black flex flex-col transition-all duration-200 ${
+      className={`border-r border-gray-200 relative h-screen bg-[#fff] text-black flex flex-col transition-all duration-200 ${
         isMinimized ? "w-16" : "w-72"
       }`}
     >
+    
       {/* Header */}
       <div className="p-2 flex items-center justify-between border-b border-gray-200">
         {!isMinimized && <img src={logo} alt="logo" className="w-7 h-7" />}
@@ -316,7 +317,7 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
         </button>
       </div>
 
-      {/* Settings Popover (like ChatGPT) */}
+    
       {showSettingsCard && !isMinimized && (
         <div
           ref={settingsCardRef}
