@@ -7,8 +7,9 @@ import {
   FiChevronLeft,
   FiSettings,
   FiLogOut,
-  FiMoreHorizontal 
+  FiMoreHorizontal ,
 } from "react-icons/fi";
+import { HiMiniArrowRightEndOnRectangle ,HiMiniArrowLeftEndOnRectangle  } from "react-icons/hi2";
 import api from "../config/Api";
 import { toast } from "react-toastify";
 import logo from '/logo.svg';
@@ -167,11 +168,11 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
 
   if (loading) {
     return (
-      <div className="h-screen w-64 bg-[#202123] border-r border-gray-800 p-4 flex flex-col">
+      <div className="h-screen w-64 bg-[#fff] border-r border-gray-800 p-4 flex flex-col">
         <div className="animate-pulse space-y-4">
-          <div className="h-10 bg-gray-700 rounded"></div>
-          <div className="h-8 bg-gray-700 rounded w-3/4"></div>
-          <div className="h-8 bg-gray-700 rounded w-1/2"></div>
+          <div className="h-10 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-8 bg-gray-200 rounded w-1/2"></div>
         </div>
       </div>
     );
@@ -191,7 +192,7 @@ export default function Sidebar({ onSelectChat, selectedChatId }) {
           onClick={() => setIsMinimized(!isMinimized)}
           className="p-2 rounded hover:bg-gray-200 transition cursor-pointer"
         >
-          {isMinimized ? <FiMenu /> : <FiChevronLeft />}
+          {isMinimized ? <HiMiniArrowRightEndOnRectangle/> : <HiMiniArrowLeftEndOnRectangle />}
         </button>
       </div>
 
